@@ -1,0 +1,85 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Auth API Documentation",
+    "version": "1.0.0",
+    "description": "# Authentication API\n\nComplete authentication system including:\n- User registration\n- Login with email/password\n- OAuth integration\n- Password reset\n- Token management\n\n## Authentication Flow\n1. Register or login to get tokens\n2. Use access token for protected endpoints (expires in 15m)\n3. Use refresh token to get new access token\n4. Logout to invalidate tokens\n",
+    "contact": {
+      "name": "API Support",
+      "email": "wksn75321@gmail.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api/v1",
+      "description": "Local Development Server"
+    },
+    {
+      "url": "https://your-api.com/api/v1",
+      "description": "Production Server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "User authentication and authorization endpoints"
+    }
+  ],
+  "paths": {
+    "/auth/register": {
+      "$ref": "./paths/register.yaml"
+    },
+    "/auth/login": {
+      "$ref": "./paths/login.yaml"
+    },
+    "/auth/oauth/callback": {
+      "$ref": "./paths/oauth-callback.yaml"
+    },
+    "/auth/refresh": {
+      "$ref": "./paths/refresh.yaml"
+    },
+    "/auth/me": {
+      "$ref": "./paths/me.yaml"
+    },
+    "/auth/logout": {
+      "$ref": "./paths/logout.yaml"
+    },
+    "/auth/password/reset-request": {
+      "$ref": "./paths/reset-request.yaml"
+    },
+    "/auth/password/reset": {
+      "$ref": "./paths/reset.yaml"
+    },
+    "/auth/password/change": {
+      "$ref": "./paths/change-password.yaml"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter JWT token in format-`Bearer <token>`"
+      }
+    },
+    "schemas": {
+      "$ref": "./schemas/schemas.yaml"
+    },
+    "responses": {
+      "$ref": "./responses/responses.yaml"
+    },
+    "examples": {
+      "$ref": "./examples/examples.yaml"
+    }
+  },
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ]
+}
