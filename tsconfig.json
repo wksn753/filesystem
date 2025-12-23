@@ -1,9 +1,40 @@
 {
   "compilerOptions": {
-    "target": "es5",
-    "module": "commonjs",
+    // Specify the target JavaScript language version for the emitted JavaScript.
+    "target": "ES2020",
+
+    // Specify the module system for the emitted code (CommonJS is standard for Node/Express).
+    "module": "CommonJS",
+
+    // Specify where the compiled JavaScript files should be placed.
+    "outDir": "./dist",
+
+    // Specify the root folder where your TypeScript files are located.
+    "rootDir": "./src",
+
+    // Enable strict type checking options.
+    "strict": true,
+
+    // Resolve modules using Node.js resolution logic.
+    "moduleResolution": "node",
+
+    // Include source map files to enable debugging in Node.js.
     "sourceMap": true,
-    "outDir": "dist",
-    "esModuleInterop": true
-  }
+
+    // Skip type checking all .d.ts files, improving compilation speed.
+    "skipLibCheck": true,
+
+    // Don't emit files if there are errors.
+    "noEmitOnError": true,
+
+    // Allow default imports from modules with no default export.
+    "esModuleInterop": true,
+
+    // Required for Express to correctly resolve type definitions from node_modules.
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+    
+  },
+  "include": ["src/**/*.ts", "src/**/*.json", "docs/generateDocs.ts"],
+  "exclude": ["node_modules"]
 }

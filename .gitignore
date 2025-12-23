@@ -66,3 +66,5 @@ yarn.lock
 *.sqlite
 coverage/
 tmp/
+
+/src/generated/prisma

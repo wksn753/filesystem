@@ -1,0 +1,278 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  extensions = [ltree]
+}
+
+// ----------------------
+// MODELS
+// ----------------------
+
+model Tenant {
+  id              String    @id @default(uuid())
+  name            String    @unique
+  // Link to the root folder of this tenant
+  rootFolder      Folder?   @relation("TenantRoot", fields: [rootFolderId], references: [id])
+  rootFolderId    String?   @unique
+  
+  // Relations
+  folders         Folder[]
+  files           File[]    // New: Relation to files owned by the tenant
+  members         TenantMember[]  // NEW: Added opposite relation for TenantMember
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Folder {
+  id              String    @id @default(uuid())
+  name            String
+  parentId        String?
+  tenantId        String
+
+  // PostgreSQL ltree extension for path management
+  path            Unsupported("ltree") 
+
+  // Folder Hierarchy (Adjacency List)
+  parent          Folder?   @relation("FolderHierarchy", fields: [parentId], references: [id])
+  children        Folder[]  @relation("FolderHierarchy")
+  
+  // Relations
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  rootOfTenant    Tenant?   @relation("TenantRoot") // The tenant that has this folder as its root
+  
+  // New: Files contained within this folder
+  files           File[]    @relation("FolderContents") 
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Enforce unique names within a parent folder
+  @@unique([parentId, name, tenantId])
+}
+
+// ----------------------
+// NEW: File Model
+// ----------------------
+
+model File {
+  id                String    @id @default(uuid())
+  name              String
+  folderId          String    // Foreign key to the parent Folder
+  tenantId          String    // For multi-tenancy isolation (redundant but good safeguard)
+  
+  mimeType          String?
+  
+  // Versioning - FIXED: Added @unique constraint for one-to-one relation
+  currentVersionId  String?   @unique  // CHANGED: Added @unique
+  currentVersion    FileVersion? @relation("CurrentVersion", fields: [currentVersionId], references: [id])
+  versions          FileVersion[]
+
+  // Relations
+  folder            Folder    @relation("FolderContents", fields: [folderId], references: [id])
+  tenant            Tenant    @relation(fields: [tenantId], references: [id])
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Enforce unique file names within a parent folder
+  @@unique([folderId, name])
+  @@index([tenantId]) // Index for quick tenant-level file listing
+}
+
+// ----------------------
+// NEW: FileVersion Model 
+// ----------------------
+
+model FileVersion {
+  id                String    @id @default(uuid())
+  fileId            String
+  
+  // Object Storage Mapping Keys
+  storageBucket     String
+  storageKey        String    // The actual key/path in S3/MinIO (e.g., UUID/version-hash)
+  
+  size              BigInt    // File size in bytes
+  versionNumber     Int       @default(1)
+  
+  // Relations
+  file              File      @relation(fields: [fileId], references: [id])
+  
+  // The file that is currently using this version
+  currentOfFile     File?     @relation("CurrentVersion") 
+
+  createdAt         DateTime  @default(now())
+
+  @@unique([fileId, versionNumber])
+}
+
+// ----------------------
+// AUTHENTICATION MODELS
+// ----------------------
+
+enum AuthProvider {
+  LOCAL       // Email/Password
+  GOOGLE
+  MICROSOFT
+  GITHUB
+  // Add more providers as needed
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  TENANT_ADMIN
+  USER
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  emailVerified   DateTime?
+  
+  // For local auth (email/password)
+  passwordHash    String?   // Nullable because OAuth users won't have passwords
+  
+  // Profile information
+  firstName       String?
+  lastName        String?
+  displayName     String?
+  avatarUrl       String?
+  
+  // Account status
+  isActive        Boolean   @default(true)
+  isSuspended     Boolean   @default(false)
+  
+  // Relations
+  accounts        Account[]       // OAuth accounts
+  sessions        Session[]
+  tenantMembers   TenantMember[]  // User's memberships in different tenants
+  refreshTokens   RefreshToken[]
+  passwordResets  PasswordReset[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastLoginAt     DateTime?
+  
+  @@index([email])
+}
+
+// OAuth Accounts (Google, Microsoft, etc.)
+model Account {
+  id                String    @id @default(uuid())
+  userId            String
+  provider          AuthProvider
+  providerAccountId String    // The ID from the OAuth provider
+  
+  // OAuth tokens
+  accessToken       String?   @db.Text
+  refreshToken      String?   @db.Text
+  expiresAt         DateTime?
+  tokenType         String?
+  scope             String?
+  idToken           String?   @db.Text
+  
+  // Relations
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+// Session management
+model Session {
+  id              String    @id @default(uuid())
+  userId          String
+  token           String    @unique
+  
+  // Session metadata
+  ipAddress       String?
+  userAgent       String?
+  
+  expiresAt       DateTime
+  
+  // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime  @default(now())
+  lastActivityAt  DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+// Refresh tokens for JWT auth
+model RefreshToken {
+  id              String    @id @default(uuid())
+  userId          String
+  token           String    @unique
+  
+  expiresAt       DateTime
+  isRevoked       Boolean   @default(false)
+  
+  // Device/session tracking
+  ipAddress       String?
+  userAgent       String?
+  
+  // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime  @default(now())
+  revokedAt       DateTime?
+  
+  @@index([userId])
+  @@index([token])
+}
+
+// Password reset tokens
+model PasswordReset {
+  id              String    @id @default(uuid())
+  userId          String
+  token           String    @unique
+  
+  expiresAt       DateTime
+  isUsed          Boolean   @default(false)
+  
+  // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime  @default(now())
+  usedAt          DateTime?
+  
+  @@index([userId])
+  @@index([token])
+}
+
+// Multi-tenancy: User membership in tenants
+model TenantMember {
+  id              String    @id @default(uuid())
+  userId          String
+  tenantId        String
+  role            UserRole  @default(USER)
+  
+  // Permissions can be extended here
+  permissions     Json?     // Store custom permissions as JSON
+  
+  // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([userId, tenantId])
+  @@index([userId])
+  @@index([tenantId])
+}
