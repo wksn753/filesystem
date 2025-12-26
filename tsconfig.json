@@ -32,9 +32,9 @@
 
     // Required for Express to correctly resolve type definitions from node_modules.
     "resolveJsonModule": true,
-    "forceConsistentCasingInFileNames": true,
-    
+    "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*.ts", "src/**/*.json", "docs/generateDocs.ts"],
-  "exclude": ["node_modules"]
+  "include": ["src/**/*.ts", "src/**/*.json",],
+  "exclude": ["node_modules"],
+  "resolveJsonModule": true,
 }

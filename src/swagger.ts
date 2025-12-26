@@ -2,19 +2,23 @@ import swaggerAutogen from "swagger-autogen";
 
 const doc = {
   info: {
-    title: "FileSystem API",
+    title: "File System API",
+    description: "API documentation for the File System service",
     version: "1.0.0",
-    description: "API for managing tenants and folders",
   },
-  host: "localhost:3000",
+  host: `localhost:${process.env.PORT || 3000}`,
   schemes: ["http"],
-  tags: [
-    { name: "Tenants", description: "Tenant management" },
-    { name: "Folders", description: "Folder management" },
-  ],
+  basePath: "/api/v1",
 };
 
-const outputFile = "./swagger-output.json";
-const endpointsFiles = ["./src/index.ts"];
+const outputFile = "./src/swagger-output.json";
 
-swaggerAutogen()(outputFile, endpointsFiles, doc);
+const endpointsFiles = [
+  "./src/index.ts",
+  "./src/routes/auth/authRoutes.ts",
+  "./src/routes/tenants/tenantRouter.ts",
+  "./src/routes/folders/folderRouter.ts",
+  "./src/routes/files/fileRouter.ts",
+];
+
+swaggerAutogen({ openapi: "3.0.0" })(outputFile, endpointsFiles, doc);

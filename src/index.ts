@@ -10,10 +10,10 @@ import { initializeAuthModule } from "./routes/auth/authRoutes";
 import {setupTenantRoutes} from "./routes/tenants/tenantRouter";
 import {setupFolderRoutes} from "./routes/folders/folderRouter";
 import { createFileRouter } from "./routes/files/fileRouter";
-import { FileService } from "./services/FilesManagement/FileService";
+//import { FileService } from "./services/FilesManagement/FileService";
 import dotenv from "dotenv";
 import swaggerUi from "swagger-ui-express";
-import swaggerFile from "./swagger-output.json";
+import swaggerDocument from "./swagger-output.json";
 
 dotenv.config();
 
@@ -50,8 +50,10 @@ app.use(
     allowedHeaders: ["Authorization", "Content-Type"],
   })
 );
-// Swagger UI
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
+
+
+// Serve Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.get("/", (req, res) => {
   const name = process.env.NAME || "World";

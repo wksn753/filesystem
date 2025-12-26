@@ -214,8 +214,9 @@ export class AuthService {
     userAgent?: string
   ): Promise<{ user: any; tokens: AuthTokens; isNewUser: boolean }> {
     let isNewUser = false;
+    let user: any;
 
-    // Check if account already exists
+    // 1️ Check if OAuth account already exists
     const existingAccount = await this.prisma.account.findUnique({
       where: {
         provider_providerAccountId: {
@@ -223,15 +224,11 @@ export class AuthService {
           providerAccountId: dto.providerAccountId,
         },
       },
-      include: {
-        user: true,
-      },
+      include: { user: true },
     });
 
-    let user;
-
     if (existingAccount) {
-      // Update OAuth tokens
+      // Existing OAuth account: update tokens
       await this.prisma.account.update({
         where: { id: existingAccount.id },
         data: {
@@ -251,13 +248,13 @@ export class AuthService {
         data: { lastLoginAt: new Date() },
       });
     } else {
-      // Check if user exists with this email
+      // 2️ OAuth account doesn't exist: check if user exists by email
       const existingUser = await this.prisma.user.findUnique({
         where: { email: dto.email.toLowerCase() },
       });
 
       if (existingUser) {
-        // Link OAuth account to existing user
+        // Link new OAuth account to existing user
         await this.prisma.account.create({
           data: {
             userId: existingUser.id,
@@ -271,8 +268,11 @@ export class AuthService {
         });
 
         user = existingUser;
+
+        // Not a new user, just linked OAuth
+        isNewUser = false;
       } else {
-        // Create new user with OAuth account
+        // 3️ Truly new user: create user + OAuth account
         isNewUser = true;
         user = await this.prisma.user.create({
           data: {
@@ -298,19 +298,25 @@ export class AuthService {
         });
       }
 
-      // Update last login
+      // Update last login for both cases
       await this.prisma.user.update({
         where: { id: user.id },
         data: { lastLoginAt: new Date() },
       });
     }
 
-    // Create session and generate tokens
+    // 4️ Create session and generate tokens
     const tokens = await this.createSession(user.id, ipAddress, userAgent);
 
+    // 5️ Remove sensitive fields
     const { passwordHash, ...userWithoutPassword } = user;
 
-    return { user: userWithoutPassword, tokens, isNewUser };
+    // 6️ Return result
+    return {
+      user: userWithoutPassword,
+      tokens,
+      isNewUser,
+    };
   }
 
   // ==========================================================================

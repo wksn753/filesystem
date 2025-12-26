@@ -5,14 +5,8 @@
   "private": true,
   "main": "dist/index.js",
   "scripts": {
-    "docs:generate": "npx tsx docs/generateDocs.ts",
-    "docs:generate:dev": "node --loader tsx docs/generateDocs.ts",
-    "docs:serve": "npx http-server docs/public -p 8080",
-    "docs:watch": "nodemon --watch docs --ext ts,yaml,yml --exec \"npx tsx docs/generateDocs.ts\"",
-    "docs:deploy": "npm run docs:generate && npx gh-pages -d docs/public",
-
     "dev": "tsx watch src/index.ts",
-    "swagger": "tsx src/swagger.ts",
+    "swagger": "ts-node src/swagger.ts",
     "build": "npm run clean && npx prisma generate && tsc",
     "clean": "del-cli dist",
     "start": "node dist/index.js",
@@ -31,6 +25,7 @@
     "minio": "^8.0.6",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
+    "node-fetch": "^3.3.2",
     "rotating-file-stream": "^3.2.7",
     "swagger-autogen": "^2.23.7",
     "swagger-jsdoc": "^6.2.8",
