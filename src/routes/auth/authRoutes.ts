@@ -394,33 +394,6 @@ export function setupAuthRoutes(
   // PROTECTED ROUTES (Authentication required)
   // ========================================================================
 
-  /**
-   * Get current user
-   * @swagger
-   * /api/v1/auth/me:
-   *   get:
-   *     tags:
-   *       - Authentication
-   *     summary: Get current user information
-   *     description: Get information about the currently authenticated user
-   *     security:
-   *       - bearerAuth: []
-   *     responses:
-   *       200:
-   *         description: User information retrieved successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 success:
-   *                   type: boolean
-   *                   example: true
-   *                 data:
-   *                   $ref: '#/components/schemas/User'
-   *       401:
-   *         description: Not authenticated
-   */
   router.get("/me", authenticate, controller.getMe);
 
   /**

@@ -26,8 +26,11 @@ model Tenant {
   
   // Relations
   folders         Folder[]
-  files           File[]    // New: Relation to files owned by the tenant
-  members         TenantMember[]  // NEW: Added opposite relation for TenantMember
+  files           File[]    //  Relation to files owned by the tenant
+  members         TenantMember[]  // Added opposite relation for TenantMember
+
+  invitations   TenantInvitation[]   @relation("TenantInvitations")
+  joinRequests  TenantJoinRequest[]  @relation("TenantJoinRequests")
   
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -161,6 +164,14 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   lastLoginAt     DateTime?
+
+  // Invitations
+  invitationsSent     TenantInvitation[] @relation("InvitationsSent")
+  invitationsAccepted TenantInvitation[] @relation("InvitationsAccepted")
+  
+  // Join Requests
+  joinRequestsSent     TenantJoinRequest[] @relation("JoinRequestsSent")
+  joinRequestsReviewed TenantJoinRequest[] @relation("JoinRequestsReviewed")
   
   @@index([email])
 }
@@ -275,4 +286,73 @@ model TenantMember {
   @@unique([userId, tenantId])
   @@index([userId])
   @@index([tenantId])
+}
+
+model TenantInvitation {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation("TenantInvitations", fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  email       String   // Email of person being invited
+  role        UserRole // Role they'll have when they join
+  permissions Json?    // Custom permissions for this user
+  
+  token       String   @unique // Secure token for accepting invitation
+  expiresAt   DateTime // When invitation expires
+  
+  status      String   @default("PENDING") // PENDING, ACCEPTED, DECLINED, EXPIRED, CANCELLED
+  
+  // Who invited them
+  invitedBy   String
+  inviter     User     @relation("InvitationsSent", fields: [invitedBy], references: [id], onDelete: Cascade)
+  
+  // Optional message from inviter
+  message     String?
+  
+  // If accepted
+  acceptedAt  DateTime?
+  acceptedBy  String?
+  acceptor    User?     @relation("InvitationsAccepted", fields: [acceptedBy], references: [id], onDelete: SetNull)
+  
+  // If declined
+  declinedAt  DateTime?
+  
+  // If cancelled
+  cancelledAt DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([tenantId, email, status])
+  @@index([email, status])
+  @@index([token])
+}
+
+model TenantJoinRequest {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation("TenantJoinRequests", fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  user        User     @relation("JoinRequestsSent", fields: [userId], references: [id], onDelete: Cascade)
+  
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED
+  
+  // Optional message from user
+  message     String?
+  
+  // Admin who reviewed
+  reviewedBy  String?
+  reviewer    User?    @relation("JoinRequestsReviewed", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  reviewedAt  DateTime?
+  
+  // If rejected
+  rejectionReason String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, tenantId])
+  @@index([tenantId, status])
+  @@index([userId, status])
 }

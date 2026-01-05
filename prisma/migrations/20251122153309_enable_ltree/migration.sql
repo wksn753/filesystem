@@ -1,3 +1,6 @@
+--- EnableExtension
+CREATE EXTENSION IF NOT EXISTS ltree;
+
 -- CreateTable
 CREATE TABLE "Folder" (
     "id" TEXT NOT NULL,

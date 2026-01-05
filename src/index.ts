@@ -8,9 +8,15 @@ import { AuthService } from "./services/auth/AuthService";
 import { AuthMiddleware } from "./middleware/auth";
 import { initializeAuthModule } from "./routes/auth/authRoutes";
 import {setupTenantRoutes} from "./routes/tenants/tenantRouter";
+import {setupTenantInvitationRoutes} from "./routes/tenants/tenantInvitationRoutes";
+
 import {setupFolderRoutes} from "./routes/folders/folderRouter";
 import { createFileRouter } from "./routes/files/fileRouter";
 //import { FileService } from "./services/FilesManagement/FileService";
+
+import { TestMailService } from "./services/mail/mail.api.test";
+
+
 import dotenv from "dotenv";
 import swaggerUi from "swagger-ui-express";
 import swaggerDocument from "./swagger-output.json";
@@ -60,7 +66,12 @@ app.get("/", (req, res) => {
   res.send(`Hello ${name}!`); // Fixed: was using template literal in wrong way
 });
 
+//
+var mailService:MailService; // Placeholder for mail service instance
 
+//use smtp mail service
+//mailService = SMTPMailService.getInstance();
+mailService = TestMailService.getInstance();
 // Initialize auth
 const authService = new AuthService(prisma);
 const authMiddleware = new AuthMiddleware(authService, prisma);
@@ -72,12 +83,17 @@ const fileRouter = createFileRouter(prisma, authMiddleware);
 // Initialize tenant router with dependencies
 const tenantRouter = setupTenantRoutes(authService, prisma);
 
+// Initialize tenant invitation routes
+const tenantInvitationRouter = setupTenantInvitationRoutes(authService, prisma,mailService);
+
+
 // Initialize folder router with dependencies
 const folderRouter = setupFolderRoutes(authService, prisma);
 
 // Mount routers
 app.use("/api/v1/auth", authRouter);        // Auth routes
 app.use("/api/v1/tenants", tenantRouter);
+app.use("/api/v1/tenants/invitations", tenantInvitationRouter);
 app.use("/api/v1/tenants/:tenantId/folders", folderRouter);
 app.use("/api/v1", fileRouter);
 

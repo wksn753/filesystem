@@ -196,6 +196,9 @@ export class AuthService {
       data: { lastLoginAt: new Date() },
     });
 
+
+  
+
     // Create session and generate tokens
     const tokens = await this.createSession(user.id, ipAddress, userAgent);
 
